@@ -235,4 +235,42 @@ Typical queries (`npm run benchmark`):
 
 ---
 
+## 10. Screenshots
+
+**Sign in:** pick a user; the right side shows what each role can do.
+
+![Sign in page with roles and permissions](docs/screenshots/01-login.jpeg)
+
+![Choosing a user on the sign in page](docs/screenshots/02-login-users.jpeg)
+
+**Results:** totals at the top (released, held, rejected, duplicates, dead letters), filters, and every result with its decision and rule set version.
+
+![Results page](docs/screenshots/03-results.jpeg)
+
+**Review queue:** held results with the reason they were held. The supervisor releases or rejects each one with a comment.
+
+![Review queue](docs/screenshots/04-review-queue.jpeg)
+
+**Alerts:** the problems found by quality monitoring (shift, disagreement, reagent lot change), grouped, with the escalation time setting.
+
+![Alerts page](docs/screenshots/05-alerts.jpeg)
+
+**QC chart:** moving average of potassium per instrument. The slow drift on INS-02 and the sudden shift on INS-01 are clearly visible.
+
+![QC chart showing the drift and the shift](docs/screenshots/06-qc-chart.jpeg)
+
+**Rules:** all rule set versions, and the rules as JSON configuration.
+
+![Rules page](docs/screenshots/07-rules.jpeg)
+
+**Dead letter store:** invalid messages, kept with the reason and the raw message.
+
+![Dead letter store](docs/screenshots/08-dead-letters.jpeg)
+
+**Simulated data:** one analyzer message per line in `backend/data/simulated_results.jsonl`.
+
+![Simulated analyzer messages](docs/screenshots/09-simulated-data.jpeg)
+
+---
+
 See **WHAT_COULD_GO_WRONG.md** for the risks to patient safety and how the design reduces them.
