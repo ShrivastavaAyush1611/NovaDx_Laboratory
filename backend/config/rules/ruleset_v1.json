@@ -1,0 +1,33 @@
+{
+  "description": "Initial rule set for K, NA, GLU and CREA",
+  "effective_from": "2026-01-01T00:00:00Z",
+  "unknown_analyte_action": "HOLD",
+  "rules": [
+    { "id": "ALL-INSTRUMENT-FLAG", "name": "Instrument reported a fault flag", "analyte": "*", "type": "instrument_flag", "action": "HOLD" },
+
+    { "id": "K-UNIT", "name": "Potassium unit must be mmol/L", "analyte": "K", "type": "unit", "unit": "mmol/L", "action": "REJECT" },
+    { "id": "K-REPORTABLE", "name": "Potassium outside reportable range", "analyte": "K", "type": "range", "low": 1.0, "high": 10.0, "action": "REJECT" },
+    { "id": "K-CRITICAL", "name": "Potassium critical value", "analyte": "K", "type": "range", "low": 2.8, "high": 6.2, "action": "HOLD" },
+    { "id": "K-DELTA", "name": "Potassium delta check", "analyte": "K", "type": "delta", "max_abs_change": 1.0, "within_hours": 72, "action": "HOLD" },
+    { "id": "K-HEMOLYSIS", "name": "Potassium hemolysis too high", "analyte": "K", "type": "index_limit", "index": "h_index", "max": 50, "action": "HOLD" },
+
+    { "id": "NA-UNIT", "name": "Sodium unit must be mmol/L", "analyte": "NA", "type": "unit", "unit": "mmol/L", "action": "REJECT" },
+    { "id": "NA-REPORTABLE", "name": "Sodium outside reportable range", "analyte": "NA", "type": "range", "low": 100, "high": 180, "action": "REJECT" },
+    { "id": "NA-CRITICAL", "name": "Sodium critical value", "analyte": "NA", "type": "range", "low": 120, "high": 160, "action": "HOLD" },
+    { "id": "NA-DELTA", "name": "Sodium delta check", "analyte": "NA", "type": "delta", "max_abs_change": 8, "within_hours": 48, "action": "HOLD" },
+    { "id": "NA-LIPEMIA", "name": "Sodium lipemia too high", "analyte": "NA", "type": "index_limit", "index": "l_index", "max": 300, "action": "HOLD" },
+
+    { "id": "GLU-UNIT", "name": "Glucose unit must be mmol/L", "analyte": "GLU", "type": "unit", "unit": "mmol/L", "action": "REJECT" },
+    { "id": "GLU-REPORTABLE", "name": "Glucose outside reportable range", "analyte": "GLU", "type": "range", "low": 0.5, "high": 40, "action": "REJECT" },
+    { "id": "GLU-CRITICAL", "name": "Glucose critical value", "analyte": "GLU", "type": "range", "low": 2.5, "high": 25, "action": "HOLD" },
+    { "id": "GLU-DELTA", "name": "Glucose delta check", "analyte": "GLU", "type": "delta", "max_abs_change": 8, "within_hours": 24, "action": "HOLD" },
+    { "id": "GLU-HEMOLYSIS", "name": "Glucose hemolysis too high", "analyte": "GLU", "type": "index_limit", "index": "h_index", "max": 400, "action": "HOLD" },
+    { "id": "GLU-LIPEMIA", "name": "Glucose lipemia too high", "analyte": "GLU", "type": "index_limit", "index": "l_index", "max": 500, "action": "HOLD" },
+
+    { "id": "CREA-UNIT", "name": "Creatinine unit must be umol/L", "analyte": "CREA", "type": "unit", "unit": "umol/L", "action": "REJECT" },
+    { "id": "CREA-REPORTABLE", "name": "Creatinine outside reportable range", "analyte": "CREA", "type": "range", "low": 10, "high": 2000, "action": "REJECT" },
+    { "id": "CREA-CRITICAL", "name": "Creatinine critical value", "analyte": "CREA", "type": "range", "low": 20, "high": 600, "action": "HOLD" },
+    { "id": "CREA-DELTA", "name": "Creatinine delta check (percent)", "analyte": "CREA", "type": "delta", "max_percent_change": 50, "within_hours": 72, "action": "HOLD" },
+    { "id": "CREA-ICTERUS", "name": "Creatinine icterus too high", "analyte": "CREA", "type": "index_limit", "index": "i_index", "max": 150, "action": "HOLD" }
+  ]
+}

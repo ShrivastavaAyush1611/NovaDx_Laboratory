@@ -1,0 +1,38 @@
+{
+  "name": "novadx-backend",
+  "version": "1.0.0",
+  "description": "NovaDx result surveillance and auto-verification engine (backend)",
+  "main": "src/server.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:setup": "node scripts/setupDb.js",
+    "simulate": "node scripts/simulate.js",
+    "load": "node scripts/loadData.js",
+    "evaluate": "node scripts/evaluateDetection.js",
+    "benchmark": "node scripts/benchmarkQueries.js",
+    "rules:load": "node scripts/loadRuleFile.js",
+    "test": "jest --runInBand"
+  },
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.7",
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2",
+    "supertest": "^7.3.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "globalSetup": "./tests/globalSetup.js",
+    "testTimeout": 60000
+  },
+  "private": true
+}
