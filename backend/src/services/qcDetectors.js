@@ -1,40 +1,22 @@
-// Patient based quality control ("average of normals").
-// This file has NO database code, so the same detector is used by the server,
-// the tests and the evaluation script.
-//
-// How it works (simple version):
-// 1. Baseline: for every analyte and time-of-day block we learn the normal mean and SD
-//    from the first results (all instruments together). Different blocks handle the
-//    normal daily pattern (e.g. more sick inpatients at night).
-// 2. Every result becomes a z-score: (value - baseline median) / baseline SD.
-//    Very abnormal patients (|z| > truncateZ) are left out, they say nothing about the instrument.
-//    The z-score is then calibrated so that normal data has mean 0 and SD 1 (see computeBaseline).
-// 3. Per instrument + analyte we keep the last N z-scores (moving window, counted in results
-//    not in hours, so quiet periods just take longer to fill the window).
-// 4. Checks:
-//    SHIFT        -> moving average of the window is too far from 0
-//    DRIFT        -> CUSUM (adds up small deviations over time, good for slow drifts)
-//    DISAGREEMENT -> two instruments of the same lab running the same test have different averages
-//    LOT_SHIFT    -> the first results of a new reagent lot differ from the previous lot
+
 
 const { localHour } = require('../utils');
 
 const DEFAULT_SETTINGS = {
-  baselineSize: 300,        // results needed (per analyte per block) to learn the baseline
-  truncateZ: 3,             // ignore results further than this from the baseline
-  windowSize: 40,           // moving window size (number of results)
-  shiftLimit: 4.0,          // SHIFT if |window mean| > shiftLimit * standard error
-  cusumK: 0.5,              // CUSUM allowance (in SD)
-  cusumH: 12,               // CUSUM decision limit (tuned, see README)
-  disagreementLimit: 4.0,   // DISAGREEMENT if |meanA - meanB| > limit * standard error
-  disagreementMaxGapHours: 2, // only compare instruments that both had results recently
-  lotWindowSize: 80,        // results of the new lot to collect before comparing
-  lotLimit: 3.5,            // LOT_SHIFT if difference > lotLimit * standard error
-  cooldown: 100,            // after a signal, wait this many results before the same signal again
-  lateMinutes: 120          // results older than this (compared to the newest one) are skipped
+  baselineSize: 300,      
+  truncateZ: 3,             
+  windowSize: 40,           
+  shiftLimit: 4.0,        
+  cusumK: 0.5,             
+  cusumH: 12,               
+  disagreementLimit: 4.0,   
+  disagreementMaxGapHours: 2, 
+  lotWindowSize: 80,        
+  lotLimit: 3.5,           
+  cooldown: 100,            
+  lateMinutes: 120          
 };
 
-// 4 blocks of 6 hours (lab local time)
 function timeBlock(hour) {
   if (hour < 6) return 'night';
   if (hour < 12) return 'morning';
@@ -53,12 +35,7 @@ function percentile(sorted, p) {
   return sorted[index];
 }
 
-// "robust" mean and SD: median as the center and the spread between the 16th and 84th
-// percentile as the SD. Sick patients (long tail on one side) don't pull this around much.
-// (first version used a trimmed mean, that gave false alarms for sodium - see README)
-// Step 2: we only use results with |z| <= truncateZ, so we also remember the mean and SD
-// of those truncated z-scores (zMean, zSd). Then (z - zMean) / zSd has mean 0 and SD 1
-// in normal conditions, and the limits below mean the same thing for every analyte.
+
 function computeBaseline(values, truncateZ) {
   const sorted = values.slice().sort(function (a, b) { return a - b; });
   const median = percentile(sorted, 0.5);
@@ -79,13 +56,12 @@ function computeBaseline(values, truncateZ) {
 }
 
 class QcDetector {
-  // instrumentLabs = { 'INS-01': 'LAB-1', ... }
   constructor(instrumentLabs, settings) {
     this.instrumentLabs = instrumentLabs || {};
     this.settings = Object.assign({}, DEFAULT_SETTINGS, settings || {});
-    this.baselines = {};   // analyte -> block -> { mean, sd, ready, learning: [] }
-    this.streams = {};     // "INS-01|K" -> state of that instrument + analyte
-    this.pairCooldown = {}; // "K|INS-01|INS-02" -> count at last signal
+    this.baselines = {};   
+    this.streams = {};     
+    this.pairCooldown = {}; 
     this.processedCount = 0;
   }
 
@@ -111,8 +87,8 @@ class QcDetector {
         lastShiftAt: -Infinity,
         lastDriftAt: -Infinity,
         currentLot: null,
-        lotZ: [],            // z values of the current lot (last lotWindowSize)
-        newLot: null,        // a lot change we are still checking
+        lotZ: [],            
+        newLot: null,       
         newLotZ: [],
         previousLotZ: [],
         lateSkipped: 0,
@@ -122,8 +98,6 @@ class QcDetector {
     return this.streams[key];
   }
 
-  // result = { id, instrument, analyte, value, reagent_lot, timestamp (text with timezone) }
-  // returns a list of signals (empty most of the time)
   process(result) {
     const s = this.settings;
     const signals = [];
@@ -134,7 +108,6 @@ class QcDetector {
     const baseline = this.getBaseline(result.analyte, block);
     const stream = this.getStream(result.instrument, result.analyte);
 
-    // still learning the baseline
     if (!baseline.ready) {
       baseline.learning.push(result.value);
       if (baseline.learning.length >= s.baselineSize) {
@@ -146,8 +119,6 @@ class QcDetector {
       return signals;
     }
 
-    // outliers are checked BEFORE we look at the time. A crazy value with a wrong
-    // timestamp must not move the stream clock (bug found with the simulator)
     const rawZ = (result.value - baseline.mean) / baseline.sd;
     if (Math.abs(rawZ) > s.truncateZ) {
       stream.outliersSkipped++;
@@ -155,7 +126,6 @@ class QcDetector {
     }
     const z = (rawZ - baseline.zMean) / baseline.zSd;
 
-    // late arriving result: it belongs to a window we already moved past
     if (stream.lastTime && time < stream.lastTime - s.lateMinutes * 60000) {
       stream.lateSkipped++;
       return signals;
@@ -177,7 +147,6 @@ class QcDetector {
       time: time.toISOString()
     };
 
-    // ---- SHIFT: moving average ----
     if (stream.window.length === s.windowSize && stream.count - stream.lastShiftAt >= s.cooldown) {
       const meanZ = average(stream.window);
       const se = 1 / Math.sqrt(s.windowSize);
@@ -193,7 +162,6 @@ class QcDetector {
       }
     }
 
-    // ---- DRIFT: CUSUM ----
     stream.cusumHigh = Math.max(0, stream.cusumHigh + z - s.cusumK);
     stream.cusumLow = Math.max(0, stream.cusumLow - z - s.cusumK);
     if (stream.cusumHigh > s.cusumH || stream.cusumLow > s.cusumH) {
@@ -211,10 +179,8 @@ class QcDetector {
       }
     }
 
-    // ---- LOT_SHIFT: new reagent lot ----
     if (stream.currentLot === null) stream.currentLot = result.reagent_lot;
     if (result.reagent_lot !== stream.currentLot && result.reagent_lot !== stream.newLot) {
-      // a new lot was just put into use
       stream.previousLotZ = stream.lotZ.slice();
       stream.newLot = result.reagent_lot;
       stream.newLotZ = [];
@@ -227,8 +193,7 @@ class QcDetector {
     if (stream.newLot === result.reagent_lot) {
       stream.newLotZ.push(z);
       if (stream.newLotZ.length === s.lotWindowSize) {
-        // the new lot must be different from the previous lot AND from the normal baseline.
-        // (if we replace a BAD lot with a good one, the results go back to normal -> no alarm)
+
         const newMean = average(stream.newLotZ);
         const seBaseline = 1 / Math.sqrt(s.lotWindowSize);
         let diff = newMean;
@@ -247,11 +212,10 @@ class QcDetector {
               diff.toFixed(2) + ' SD from the previous lot'
           }));
         }
-        stream.newLot = null; // check done
+        stream.newLot = null; 
       }
     }
 
-    // ---- DISAGREEMENT between instruments of the same lab ----
     if (stream.window.length === s.windowSize) {
       const myLab = this.instrumentLabs[result.instrument];
       for (const key of Object.keys(this.streams)) {
@@ -259,7 +223,6 @@ class QcDetector {
         if (other === stream || other.analyte !== result.analyte) continue;
         if (!myLab || this.instrumentLabs[other.instrument] !== myLab) continue;
         if (other.window.length < s.windowSize) continue;
-        // quiet period: other instrument has no recent results, don't compare old data
         if (!other.lastTime || Math.abs(time - other.lastTime) > s.disagreementMaxGapHours * 3600000) continue;
 
         const pair = [stream.instrument, other.instrument].sort();
@@ -286,7 +249,6 @@ class QcDetector {
     return signals;
   }
 
-  // small summary for the UI / API
   getStatus() {
     const out = [];
     for (const key of Object.keys(this.streams)) {

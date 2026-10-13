@@ -1,7 +1,7 @@
 const db = require('../db');
-const { validateMessage } = require('./validate');
-const { evaluate } = require('./rulesEngine');
-const { getActiveRuleSet } = require('./ruleSets');
+const { validateMessage } = require('../services/validate');
+const { evaluate } = require('../services/rulesEngine');
+const { getActiveRuleSet } = require('../services/ruleSets');
 const { sha256, stableStringify } = require('../utils');
 
 let instrumentCache = null;

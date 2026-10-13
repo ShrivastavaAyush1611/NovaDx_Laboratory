@@ -1,34 +1,20 @@
 const db = require('../db');
 const { validateRuleSetConfig } = require('./rulesEngine');
 
-let cache = { loadedAt: 0, ruleSets: [] };
-const CACHE_MS = 5000;
-
 async function loadAllRuleSets() {
   const res = await db.query('SELECT version, effective_from, description, config, created_by, created_at FROM rule_sets ORDER BY version');
   return res.rows;
 }
 
-function clearCache() {
-  cache = { loadedAt: 0, ruleSets: [] };
-}
-
 async function getActiveRuleSet(when) {
-  when = when || new Date();
-  if (Date.now() - cache.loadedAt > CACHE_MS) {
-    cache.ruleSets = await loadAllRuleSets();
-    cache.loadedAt = Date.now();
-  }
-  let active = null;
-  for (const rs of cache.ruleSets) {
-    if (new Date(rs.effective_from) <= when) {
-      if (!active || rs.version > active.version) active = rs;
-    }
-  }
-  if (!active) {
+  const res = await db.query(
+    'SELECT * FROM rule_sets WHERE effective_from <= $1 ORDER BY version DESC LIMIT 1',
+    [when || new Date()]
+  );
+  if (res.rows.length === 0) {
     throw new Error('No active rule set found');
   }
-  return active;
+  return res.rows[0];
 }
 
 async function getRuleSet(version) {
@@ -36,7 +22,6 @@ async function getRuleSet(version) {
   return res.rows[0] || null;
 }
 
-// saves a new version. old versions stay untouched.
 async function createRuleSet(config, effectiveFrom, description, username) {
   const errors = validateRuleSetConfig(config);
   if (errors.length > 0) {
@@ -56,7 +41,6 @@ async function createRuleSet(config, effectiveFrom, description, username) {
       [version, effectiveFrom || new Date().toISOString(), description || '', JSON.stringify(config), username]
     );
     await client.query('COMMIT');
-    clearCache();
     return saved.rows[0];
   } catch (err) {
     await client.query('ROLLBACK');
@@ -66,4 +50,4 @@ async function createRuleSet(config, effectiveFrom, description, username) {
   }
 }
 
-module.exports = { getActiveRuleSet, getRuleSet, createRuleSet, loadAllRuleSets, clearCache };
+module.exports = { getActiveRuleSet, getRuleSet, createRuleSet, loadAllRuleSets };

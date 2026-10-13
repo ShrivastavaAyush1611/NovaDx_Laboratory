@@ -1,6 +1,7 @@
-const VALID_TYPES = ['range', 'index_limit', 'delta', 'instrument_flag', 'unit'];
-const VALID_ACTIONS = ['HOLD', 'REJECT'];
 
+
+const VALID_TYPES = ['range', 'index_limit', 'delta', 'instrument_flag'];
+const VALID_ACTIONS = ['HOLD', 'REJECT'];
 
 const OUTCOME_ORDER = { RELEASED: 0, HELD: 1, REJECTED: 2 };
 
@@ -8,7 +9,6 @@ function actionToOutcome(action) {
   if (action === 'REJECT') return 'REJECTED';
   return 'HELD';
 }
-
 
 function checkRule(rule, result, previous) {
   if (rule.type === 'range') {
@@ -29,13 +29,6 @@ function checkRule(rule, result, previous) {
     return null;
   }
 
-  if (rule.type === 'unit') {
-    if (result.unit !== rule.unit) {
-      return 'unit "' + result.unit + '" but expected "' + rule.unit + '"';
-    }
-    return null;
-  }
-
   if (rule.type === 'instrument_flag') {
     const flags = result.instrument_flags || [];
     if (flags.length > 0) {
@@ -48,7 +41,7 @@ function checkRule(rule, result, previous) {
     if (!previous) return null; 
     const hoursApart = (new Date(result.collected_at) - new Date(previous.collected_at)) / 3600000;
     if (rule.within_hours !== undefined && hoursApart > rule.within_hours) {
-      return null;
+      return null; 
     }
     const change = Math.abs(result.value - previous.value);
     if (rule.max_abs_change !== undefined && change > rule.max_abs_change) {
@@ -65,6 +58,7 @@ function checkRule(rule, result, previous) {
 
   return null;
 }
+
 
 function evaluate(result, previous, ruleSet) {
   const config = ruleSet.config;
@@ -142,9 +136,6 @@ function validateRuleSetConfig(config) {
       if (typeof rule.max_abs_change !== 'number' && typeof rule.max_percent_change !== 'number') {
         errors.push(where + ': delta needs max_abs_change or max_percent_change');
       }
-    }
-    if (rule.type === 'unit' && typeof rule.unit !== 'string') {
-      errors.push(where + ': unit must be a string');
     }
   });
   return errors;
