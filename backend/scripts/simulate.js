@@ -24,3 +24,8 @@ fs.writeFileSync(path.join(dataDir, name + '.jsonl'), lines);
 fs.writeFileSync(path.join(dataDir, name + '_faults.json'), 
 JSON.stringify({ faults: data.faults, stats: data.stats }, null, 2));
 
+
+console.log('Wrote data/' + name + '.jsonl');
+console.log(data.stats);
+console.log('Injected faults:');
+for (const f of data.faults) console.log('  ' + f.id + ' ' + f.type + ': ' + f.description + ' (' + f.start + ' -> ' + f.end + ')');

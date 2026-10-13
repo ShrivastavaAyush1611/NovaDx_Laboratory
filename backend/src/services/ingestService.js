@@ -35,9 +35,10 @@ async function saveDeadLetter(rawMessage, reason, labId) {
 
 async function findPreviousResult(client, patient, analyte, collectedAt, newId) {
   const res = await client.query(
-    `SELECT id, value, collected_at FROM results
-     WHERE patient = $1 AND analyte = $2 AND collected_at < $3 AND id < $4
-     ORDER BY collected_at DESC, version DESC
+    `SELECT r.id, r.value, r.collected_at FROM results r
+     WHERE r.patient = $1 AND r.analyte = $2 AND r.collected_at < $3 AND r.id < $4
+       AND NOT EXISTS (SELECT 1 FROM decisions d WHERE d.result_id = r.id AND d.seq = 1 AND d.outcome = 'REJECTED')
+     ORDER BY r.collected_at DESC, r.version DESC
      LIMIT 1`,
     [patient, analyte, collectedAt, newId]
   );
@@ -67,6 +68,8 @@ async function ingestMessage(message, options) {
   const messageHash = sha256(stableStringify(message));
   const collectedAt = new Date(message.timestamp).toISOString();
   const flags = message.instrument_flags || [];
+
+  const ruleSet = await getActiveRuleSet(new Date());
 
   const client = await db.pool.connect();
   let stored = null;
@@ -107,7 +110,6 @@ async function ingestMessage(message, options) {
 
     stored = insert.rows[0];
 
-    const ruleSet = await getActiveRuleSet(new Date());
     const previous = await findPreviousResult(client, stored.patient, stored.analyte, stored.collected_at, stored.id);
     decision = evaluate(stored, previous, ruleSet);
 

@@ -1,23 +1,41 @@
 {
   "labs": [
-    { "id": "LAB-1", "name": "NovaDx Central Lab (Pune)" },
-    { "id": "LAB-2", "name": "NovaDx City Lab (Mumbai)" }
+    {
+      "id": "LAB-1",
+      "name": "NovaDx Central Lab (Pune)"
+    }
   ],
   "instruments": [
-    { "id": "INS-01", "lab_id": "LAB-1" },
-    { "id": "INS-02", "lab_id": "LAB-1" },
-    { "id": "INS-03", "lab_id": "LAB-2" },
-    { "id": "INS-04", "lab_id": "LAB-2" }
+    {
+      "id": "INS-01",
+      "lab_id": "LAB-1"
+    },
+    {
+      "id": "INS-02",
+      "lab_id": "LAB-1"
+    }
   ],
   "users": [
-    { "username": "tech1", "role": "LabTechnician", "lab_id": "LAB-1" },
-    { "username": "qe1", "role": "QualityEngineer", "lab_id": "LAB-1" },
-    { "username": "super1", "role": "LabSupervisor", "lab_id": "LAB-1" },
-    { "username": "auditor1", "role": "Auditor", "lab_id": "LAB-1" },
-    { "username": "tech2", "role": "LabTechnician", "lab_id": "LAB-2" },
-    { "username": "qe2", "role": "QualityEngineer", "lab_id": "LAB-2" },
-    { "username": "super2", "role": "LabSupervisor", "lab_id": "LAB-2" },
-    { "username": "auditor2", "role": "Auditor", "lab_id": "LAB-2" }
+    {
+      "username": "tech1",
+      "role": "LabTechnician",
+      "lab_id": "LAB-1"
+    },
+    {
+      "username": "qe1",
+      "role": "QualityEngineer",
+      "lab_id": "LAB-1"
+    },
+    {
+      "username": "super1",
+      "role": "LabSupervisor",
+      "lab_id": "LAB-1"
+    },
+    {
+      "username": "auditor1",
+      "role": "Auditor",
+      "lab_id": "LAB-1"
+    }
   ],
   "default_password": "password123",
   "settings": {
