@@ -1,4 +1,5 @@
 
+
 DROP TABLE IF EXISTS result_flags, impact_cases, notifications, alert_events, alerts,
   duplicate_messages, dead_letters, decisions, results, rule_sets, settings,
   audit_log, users, instruments, labs CASCADE;
@@ -55,7 +56,7 @@ CREATE TABLE results (
   i_index            DOUBLE PRECISION NOT NULL,
   l_index            DOUBLE PRECISION NOT NULL,
   instrument_flags   JSONB NOT NULL DEFAULT '[]',
-  collected_at       TIMESTAMPTZ NOT NULL,    
+  collected_at       TIMESTAMPTZ NOT NULL,   
   original_timestamp TEXT NOT NULL,            
   received_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   message_hash       TEXT NOT NULL,
@@ -79,17 +80,18 @@ CREATE TABLE decisions (
   rule_set_version INT REFERENCES rule_sets(version),
   triggered_rules  JSONB NOT NULL DEFAULT '[]',
   reason           TEXT,
+
   previous_result_id BIGINT REFERENCES results(id),
   decided_by       TEXT NOT NULL,   
   decided_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (result_id, seq)
 );
 
+
 CREATE VIEW current_decisions AS
   SELECT DISTINCT ON (result_id) *
   FROM decisions
   ORDER BY result_id, seq DESC;
-
 
 CREATE TABLE dead_letters (
   id          BIGSERIAL PRIMARY KEY,
@@ -99,7 +101,6 @@ CREATE TABLE dead_letters (
   lab_id      TEXT REFERENCES labs(id)  
 );
 
-
 CREATE TABLE duplicate_messages (
   id          BIGSERIAL PRIMARY KEY,
   result_id   BIGINT NOT NULL REFERENCES results(id),
@@ -107,12 +108,11 @@ CREATE TABLE duplicate_messages (
 );
 
 
-
 CREATE TABLE alerts (
   id              BIGSERIAL PRIMARY KEY,
   lab_id          TEXT NOT NULL REFERENCES labs(id),
   type            TEXT NOT NULL,
-  group_key       TEXT NOT NULL,     
+  group_key       TEXT NOT NULL,    
   instrument      TEXT,
   analyte         TEXT,
   reagent_lot     TEXT,
@@ -128,12 +128,11 @@ CREATE TABLE alerts (
 
 CREATE INDEX idx_alerts_group ON alerts (group_key, last_seen);
 
-
 CREATE TABLE notifications (
   id              BIGSERIAL PRIMARY KEY,
   alert_id        BIGINT NOT NULL REFERENCES alerts(id),
   lab_id          TEXT NOT NULL,
-  kind            TEXT NOT NULL,          
+  kind            TEXT NOT NULL,        
   recipient       TEXT NOT NULL,          
   status          TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SENT', 'FAILED')),
   attempts        INT NOT NULL DEFAULT 0,
@@ -151,7 +150,7 @@ CREATE TABLE impact_cases (
   id          BIGSERIAL PRIMARY KEY,
   kind        TEXT NOT NULL CHECK (kind IN ('instrument', 'reagent_lot')),
   target      TEXT NOT NULL,
-  start_time  TIMESTAMPTZ NOT NULL,   
+  start_time  TIMESTAMPTZ NOT NULL,  
   description TEXT,
   created_by  TEXT NOT NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -174,7 +173,7 @@ CREATE TABLE audit_log (
   role       TEXT,
   lab_id     TEXT,
   action     TEXT NOT NULL,
-  details    TEXT NOT NULL DEFAULT '{}',  
+  details    TEXT NOT NULL DEFAULT '{}', 
   prev_hash  TEXT NOT NULL,
   hash       TEXT NOT NULL
 );

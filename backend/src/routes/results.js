@@ -5,7 +5,7 @@ const { evaluate } = require('../services/rulesEngine');
 const { getRuleSet, getActiveRuleSet } = require('../services/ruleSets');
 const { findPreviousResult } = require('../services/ingestService');
 const { addAuditEntry } = require('../services/audit');
-const { sha256, stableStringify } = require('../utils');
+const { sha256 } = require('../utils');
 
 const router = express.Router();
 
@@ -16,6 +16,7 @@ async function getResultForUser(id, user) {
   const res = await db.query('SELECT * FROM results WHERE id = $1 AND lab_id = $2', [id, user.lab_id]);
   return res.rows[0] || null;
 }
+
 
 router.get('/', requireRole(...ALL_ROLES), async function (req, res) {
   const params = [req.user.lab_id];
@@ -69,6 +70,7 @@ router.get('/', requireRole(...ALL_ROLES), async function (req, res) {
   res.json(result.rows);
 });
 
+// GET /api/results/summary -> counts per outcome (for the dashboard)
 router.get('/summary', requireRole(...ALL_ROLES), async function (req, res) {
   const result = await db.query(
     `SELECT d.outcome, COUNT(*)::int AS count
@@ -124,12 +126,10 @@ router.get('/:id/reproduce', requireRole(...ALL_ROLES), async function (req, res
   );
   const original = autoDecision.rows[0];
   const ruleSet = await getRuleSet(original.rule_set_version);
-  const client = await db.pool.connect();
-  let previous;
-  try {
-    previous = await findPreviousResult(client, result.patient, result.analyte, result.collected_at, result.id);
-  } finally {
-    client.release();
+  let previous = null;
+  if (original.previous_result_id) {
+    const prev = await db.query('SELECT id, value, collected_at FROM results WHERE id = $1', [original.previous_result_id]);
+    previous = prev.rows[0];
   }
   const again = evaluate(result, previous, ruleSet);
   res.json({
@@ -142,7 +142,6 @@ router.get('/:id/reproduce', requireRole(...ALL_ROLES), async function (req, res
     same: original.outcome === again.outcome && original.reason === again.reason
   });
 });
-
 
 router.post('/:id/correct', requireRole('LabSupervisor'), async function (req, res) {
   const original = await getResultForUser(req.params.id, req.user);
@@ -167,7 +166,7 @@ router.post('/:id/correct', requireRole('LabSupervisor'), async function (req, r
     );
     const base = latest.rows[0];
     const newVersion = base.version + 1;
-    const hash = sha256(stableStringify({ corrects: base.id, value: newValue, reason: reason, by: req.user.username }));
+    const hash = sha256(JSON.stringify({ corrects: base.id, value: newValue, reason: reason, by: req.user.username }));
 
     const inserted = await client.query(
       `INSERT INTO results (sample_id, patient, analyte, value, unit, instrument, lab_id, reagent_lot,
@@ -185,9 +184,10 @@ router.post('/:id/correct', requireRole('LabSupervisor'), async function (req, r
     const previous = await findPreviousResult(client, corrected.patient, corrected.analyte, corrected.collected_at, corrected.id);
     const decision = evaluate(corrected, previous, ruleSet);
     await client.query(
-      `INSERT INTO decisions (result_id, seq, outcome, rule_set_version, triggered_rules, reason, decided_by)
-       VALUES ($1, 1, $2, $3, $4, $5, 'AUTO')`,
-      [corrected.id, decision.outcome, decision.rule_set_version, JSON.stringify(decision.triggered_rules), decision.reason]
+      `INSERT INTO decisions (result_id, seq, outcome, rule_set_version, triggered_rules, reason, decided_by, previous_result_id)
+       VALUES ($1, 1, $2, $3, $4, $5, 'AUTO', $6)`,
+      [corrected.id, decision.outcome, decision.rule_set_version, JSON.stringify(decision.triggered_rules), decision.reason,
+        previous ? previous.id : null]
     );
 
     await addAuditEntry(req.user, 'RESULT_CORRECTED', {
